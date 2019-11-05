@@ -5,8 +5,10 @@ CFG_DIR = $(BASE_DIR)/cfg
 
 LIBS = toxcore ncursesw libconfig libcurl
 
+export PKG_CONFIG_PATH=../../toxproxy_001/inst_ct/lib/pkgconfig
+
 CFLAGS ?= -g
-CFLAGS += -std=gnu99 -pthread -Wall -fstack-protector-all
+CFLAGS += -std=gnu99 -pthread -Wall -fstack-protector-all -L../../toxproxy_001/inst_ct/lib/ -I../../toxproxy_001/inst_ct/include/
 CFLAGS += '-DTOXICVER="$(VERSION)"' -DHAVE_WIDECHAR -D_XOPEN_SOURCE_EXTENDED -D_FILE_OFFSET_BITS=64
 CFLAGS += '-DPACKAGE_DATADIR="$(abspath $(DATADIR))"'
 CFLAGS += ${USER_CFLAGS}
