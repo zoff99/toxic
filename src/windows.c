@@ -95,6 +95,10 @@ void on_friend_message(Tox *m, uint32_t friendnumber, Tox_Message_Type type, con
     }
 }
 
+// -- Zoxcore --
+#include "../addon/zoxcore_callback_functions01.h"
+// -- Zoxcore --
+
 void on_friend_name(Tox *m, uint32_t friendnumber, const uint8_t *string, size_t length, void *userdata)
 {
     char nick[TOXIC_MAX_NAME_LENGTH + 1];
