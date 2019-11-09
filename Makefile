@@ -3,7 +3,7 @@ CFG_DIR = $(BASE_DIR)/cfg
 
 -include $(CFG_DIR)/global_vars.mk
 
-LIBS = libtoxcore libtoxav libsodium libavutil ncursesw libconfig libcurl
+LIBS = x264 libtoxcore libtoxav libsodium libavutil libavcodec libavformat ncursesw libconfig libcurl
 
 export PKG_CONFIG_PATH=../inst_ct/lib/pkgconfig
 

@@ -70,7 +70,7 @@ VideoDeviceError close_video_device(VideoDeviceType type, uint32_t device_idx);
 
 /* Write data to device */
 VideoDeviceError write_video_out(uint16_t width, uint16_t height, uint8_t const *y, uint8_t const *u, uint8_t const *v,
-                                 int32_t ystride, int32_t ustride, int32_t vstride, void *user_data);
+                                 int32_t ystride, int32_t ustride, int32_t vstride, void *user_data, uint32_t friendnumber);
 
 void print_video_devices(ToxWindow *self, VideoDeviceType type);
 void get_primary_video_device_name(VideoDeviceType type, char *buf, int size);

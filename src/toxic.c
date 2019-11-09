@@ -660,6 +660,11 @@ static void init_tox_options(struct Tox_Options *tox_opts)
         msg = "Use the -t option to disable UDP.";
         queue_init_message("%s", msg);
     }
+
+// -- Zoxcore --
+    #include "../addon/zoxcore_tox_options.h"
+// -- Zoxcore --
+
 }
 
 /* Returns a new Tox object on success.

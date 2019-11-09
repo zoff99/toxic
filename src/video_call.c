@@ -39,7 +39,7 @@
 
 #ifdef VIDEO
 
-#define default_video_bit_rate 5000
+#define default_video_bit_rate 1000
 
 void on_video_receive_frame(ToxAV *av, uint32_t friend_number,
                             uint16_t width, uint16_t height,
@@ -126,7 +126,7 @@ void write_video_device_callback(uint32_t friend_number, uint16_t width, uint16_
                                  int32_t ystride, int32_t ustride, int32_t vstride,
                                  void *user_data)
 {
-    write_video_out(width, height, y, u, v, ystride, ustride, vstride, user_data);
+    write_video_out(width, height, y, u, v, ystride, ustride, vstride, user_data, friend_number);
 }
 
 int start_video_transmission(ToxWindow *self, ToxAV *av, Call *call)

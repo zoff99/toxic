@@ -25,9 +25,23 @@
 #ifdef TOX_HAVE_TOXUTIL
 #include <tox/toxutil.h>
 
+// #define TC_LOGGING_ACTIVE 1
+
 void friend_message_v2_cb(Tox *m, uint32_t friendnumber, const uint8_t *raw_message, size_t raw_message_len);
 void friend_read_receipt_message_v2_cb(Tox *m, uint32_t friendnumber, uint32_t ts_sec, const uint8_t *msgid);
 void friend_sync_message_v2_cb(Tox *m, uint32_t friendnumber, const uint8_t *message, size_t length);
+
+void tox_log_cb__custom(Tox *m, TOX_LOG_LEVEL level, const char *file, uint32_t line, const char *func,
+                        const char *message, void *user_data)
+{
+#ifdef TC_LOGGING_ACTIVE
+    FILE *logfile = fopen("toxic_toxcore_log.txt", "ab");
+    setvbuf(logfile, NULL, _IOLBF, 0);
+    fprintf(logfile, "%d:%s:%d:%s:%s\n", (int)level, file, (int)line, func, message);
+    fclose(logfile);
+#endif
+}
+
 
 #endif
 

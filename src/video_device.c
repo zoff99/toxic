@@ -594,12 +594,21 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
 VideoDeviceError write_video_out(uint16_t width, uint16_t height,
                                  uint8_t const *y, uint8_t const *u, uint8_t const *v,
                                  int32_t ystride, int32_t ustride, int32_t vstride,
-                                 void *user_data)
+                                 void *user_data, uint32_t friendnumber)
 {
-    VideoDevice *device = video_devices_running[vdt_output][0];
+    VideoDevice *device = video_devices_running[vdt_output][friendnumber];
 
-    if (!device) {
-        return vde_DeviceNotActive;
+    if (!device)
+    {
+
+        Call *this_call = &CallControl.calls[0];
+        open_primary_video_device(vdt_output, &this_call->vout_idx);
+
+        device = video_devices_running[vdt_output][0];
+        if (!device)
+        {
+            return vde_DeviceNotActive;
+        }
     }
 
     if (!device->x_window) {
