@@ -57,6 +57,71 @@
 
 #ifdef VIDEO
 
+// -- Zoxcore --
+#include <linux/fb.h>
+char *framebuffer_device = NULL; // framebuffer device filename
+int global_framebuffer_device_fd = 0;
+struct fb_var_screeninfo var_framebuffer_info;
+struct fb_fix_screeninfo var_framebuffer_fix_info;
+size_t framebuffer_screensize = 0;
+unsigned char *framebuffer_mappedmem = NULL;
+
+int full_width = 640; // gets set later, this is just as last resort
+int full_height = 480; // gets set later, this is just as last resort
+int vid_width = 640; // ------- fb resolution -------
+int vid_height = 480; // ------- fb resolution -------
+
+
+#define STBIR_SATURATE_INT 1
+#define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
+#define STBIR_NO_ALPHA_EPSILON 1
+#define STB_IMAGE_RESIZE_IMPLEMENTATION 1
+#define STBIR_ASSERT(x) #x
+#include "stb_image_resize.h"
+
+#define SWAP_R_AND_B_COLOR 1 // use BGRA instead of RGBA for raw framebuffer output
+
+#define CLEAR(x) memset(&(x), 0, sizeof(x))
+
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+
+#define CLIP(X) ( (X) > 255 ? 255 : (X) < 0 ? 0 : X)
+
+// RGB -> YUV
+#define RGB2Y(R, G, B) CLIP(( (  66 * (R) + 129 * (G) +  25 * (B) + 128) >> 8) +  16)
+#define RGB2U(R, G, B) CLIP(( ( -38 * (R) -  74 * (G) + 112 * (B) + 128) >> 8) + 128)
+#define RGB2V(R, G, B) CLIP(( ( 112 * (R) -  94 * (G) -  18 * (B) + 128) >> 8) + 128)
+
+// YUV -> RGB
+#define C(Y) ( (Y) - 16  )
+#define D(U) ( (U) - 128 )
+#define E(V) ( (V) - 128 )
+
+#define YUV2R(Y, U, V) CLIP(( 298 * C(Y)              + 409 * E(V) + 128) >> 8)
+#define YUV2G(Y, U, V) CLIP(( 298 * C(Y) - 100 * D(U) - 208 * E(V) + 128) >> 8)
+#define YUV2B(Y, U, V) CLIP(( 298 * C(Y) + 516 * D(U)              + 128) >> 8)
+
+
+void fb_copy_frame_to_fb(void *videoframe)
+{
+    if (framebuffer_mappedmem != NULL)
+    {
+        memcpy(framebuffer_mappedmem, videoframe, framebuffer_screensize);
+    }
+}
+
+
+// -- Zoxcore --
+
 #define inline__ inline __attribute__((always_inline))
 
 extern struct user_settings *user_settings;
@@ -228,9 +293,22 @@ VideoDeviceError init_video_devices()
 
 #endif
 
-    size[vdt_output] = 1;
+// -- Zoxcore --
+    size[vdt_output] = 0;
+
+#ifdef X11VIDEO
     char *video_output_name = "Toxic Video Receiver";
-    video_devices_names[vdt_output][0] = video_output_name;
+    video_devices_names[vdt_output][size[vdt_output]] = video_output_name;
+    ++size[vdt_output];
+#else
+    char *video_output_name2 = "Frame Buffer";
+    video_devices_names[vdt_output][size[vdt_output]] = video_output_name2;
+    ++size[vdt_output];
+
+    framebuffer_device = calloc(1, 400);
+    snprintf(framebuffer_device, 399, "%s", "/dev/fb0");
+#endif
+// -- Zoxcore --
 
     // Start poll thread
     if (pthread_mutex_init(&video_mutex, NULL) != 0) {
@@ -264,6 +342,16 @@ VideoDeviceError terminate_video_devices(void)
     for (i = 0; i < size[vdt_input]; ++i) {
         free((void *)video_devices_names[vdt_input][i]);
     }
+
+// -- Zoxcore --
+#ifdef X11VIDEO
+#else
+    if (framebuffer_device)
+    {
+        free(framebuffer_device);
+    }
+#endif
+// -- Zoxcore --
 
     if (pthread_mutex_destroy(&video_mutex) != 0) {
         return (VideoDeviceError) vde_InternalError;
@@ -508,6 +596,12 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
 
 #endif
 
+
+
+
+// -- Zoxcore --
+#ifdef X11VIDEO
+
         /* Create X11 window associated to device */
         if ((device->x_display = XOpenDisplay(NULL)) == NULL) {
             close_video_device(vdt_input, temp_idx);
@@ -545,8 +639,17 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
 
         vpx_img_alloc(&device->input, VPX_IMG_FMT_I420, device->video_width, device->video_height, 1);
 
+#endif
+// -- Zoxcore --
+
         video_thread_paused = false;
     } else { /* vdt_output */
+
+
+
+
+// -- Zoxcore --
+#ifdef X11VIDEO
 
         /* Create X11 window associated to device */
         if ((device->x_display = XOpenDisplay(NULL)) == NULL) {
@@ -583,6 +686,51 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
         XFlush(device->x_display);
 
         vpx_img_alloc(&device->input, VPX_IMG_FMT_I420, device->video_width, device->video_height, 1);
+
+#else
+
+
+
+
+        if ((global_framebuffer_device_fd = open(framebuffer_device, O_RDWR)) < 0)
+        {
+        }
+        else
+        {
+        }
+
+        // Get variable screen information
+        if (ioctl(global_framebuffer_device_fd, FBIOGET_VSCREENINFO, &var_framebuffer_info))
+        {
+        }
+        else
+        {
+        }
+
+        // Get fixed screen information
+        if (ioctl(global_framebuffer_device_fd, FBIOGET_FSCREENINFO, &var_framebuffer_fix_info))
+        {
+        }
+
+        // map framebuffer to user memory
+        framebuffer_screensize = (size_t)var_framebuffer_fix_info.smem_len;
+        framebuffer_mappedmem = NULL;
+        framebuffer_mappedmem = (char *)mmap(NULL,
+                                             (size_t)framebuffer_screensize,
+                                             PROT_READ | PROT_WRITE,
+                                             MAP_SHARED,
+                                             global_framebuffer_device_fd, 0);
+
+        if (framebuffer_mappedmem == NULL)
+        {
+        }
+        else
+        {
+        }
+
+#endif
+// -- Zoxcore --
+
     }
 
     *device_idx = temp_idx;
@@ -611,11 +759,18 @@ VideoDeviceError write_video_out(uint16_t width, uint16_t height,
         }
     }
 
+// -- Zoxcore --
+#ifdef X11VIDEO
     if (!device->x_window) {
         return vde_DeviceNotActive;
     }
+#endif
+// -- Zoxcore --
 
     pthread_mutex_lock(device->mutex);
+
+// -- Zoxcore --
+#ifdef X11VIDEO
 
     /* Resize X11 window to correct size */
     if (device->video_width != width || device->video_height != height) {
@@ -658,6 +813,284 @@ VideoDeviceError write_video_out(uint16_t width, uint16_t height,
     XFreePixmap(device->x_display, pixmap);
     XFlush(device->x_display);
     free(img_data);
+
+#else
+
+/* ------ Framebuffer output ------ */
+/* ------ Framebuffer output ------ */
+/* ------ Framebuffer output ------ */
+
+    // ----------------------
+    // ----------------------
+    // ----------------------
+    int frame_width_px1 = width;
+    int frame_height_px1 = height;
+    int ystride_ = (int)ystride;
+    int ustride_ = (int)ustride;
+    int vstride_ = (int)vstride;
+    int y_layer_size = (int) max(frame_width_px1, abs(ystride_)) * frame_height_px1;
+    int u_layer_size = (int) max((frame_width_px1 / 2), abs(ustride_)) * (frame_height_px1 / 2);
+    int v_layer_size = (int) max((frame_width_px1 / 2), abs(vstride_)) * (frame_height_px1 / 2);
+    // ----------------------
+    // ----------------------
+    // ----------------------
+
+    full_width = var_framebuffer_info.xres;
+    full_height = var_framebuffer_info.yres;
+
+    vid_width = full_width;
+    vid_height = full_height;
+
+
+    int downscale = 0;
+
+    // check if we need to upscale or downscale
+    if ((frame_width_px1 > (vid_width - 5)) || (frame_height_px1 > (vid_height - 5)))
+    {
+        // downscale to video size / or leave as is
+        downscale = 1;
+    }
+    else
+    {
+        // upscale to video size
+    }
+
+    // dbg(9, "VP-DEBUG:010\n");
+    int buffer_size_in_bytes = y_layer_size + v_layer_size + u_layer_size;
+    // dbg(9, "frame_width_px1=%d frame_width_px=%d frame_height_px1=%d\n", (int)frame_width_px1, (int)frame_width_px, (int)frame_height_px1);
+    int horizontal_stride_pixels = 0;
+    int horizontal_stride_pixels_half = 0;
+
+    if (full_width > frame_width_px1)
+    {
+        horizontal_stride_pixels = full_width - frame_width_px1;
+        horizontal_stride_pixels_half = horizontal_stride_pixels / 2;
+    }
+
+    // dbg(9, "VP-DEBUG:011\n");
+    uint8_t *bf_out_data = (uint8_t *)calloc(1, framebuffer_screensize);
+    // dbg(9, "VP-DEBUG:012\n");
+    long int i, j;
+    // dbg(9, "full_width=%f vid_width=%f full_height=%f vid_height=%f\n", (float)full_width, (float)vid_width, (float)full_height, (float)vid_height);
+    float ww = (float)var_framebuffer_info.xres / (float)vid_width;
+    float hh = (float)var_framebuffer_info.yres / (float)vid_height;
+    // dbg(9, "video frame scale factor: full_width/vid_width=%f full_height/vid_height=%f\n", ww, hh);
+    int horizontal_stride_pixels_half_resized = 0;
+
+    if (ww > 0)
+    {
+        horizontal_stride_pixels_half_resized = 0 + (int)((float)horizontal_stride_pixels_half / ww);
+        // dbg(9, "horizontal_stride_pixels_half_resized=%d\n", (int)horizontal_stride_pixels_half_resized);
+    }
+
+    int i_src;
+    int j_src;
+    int yx;
+    int ux;
+    int vx;
+    int vid_height_needed = vid_height;
+
+    if (hh > 0)
+    {
+        vid_height_needed = 0 + (int)((float)frame_height_px1 / hh);
+
+        if (vid_height_needed > vid_height)
+        {
+            vid_height_needed = vid_height;
+        }
+    }
+
+    // dbg(9, "vid_height_needed=%d vid_height=%d\n", (int)vid_height_needed, (int)vid_height);
+    // dbg(9, "VP-DEBUG:013\n");
+    int vid_width_needed = vid_width;
+
+    if (hh > 0)
+    {
+        vid_width_needed = 0 + (int)((float)frame_width_px1 / ww);
+
+        if (vid_width_needed > vid_width)
+        {
+            vid_width_needed = vid_width;
+        }
+    }
+
+    // dbg(9, "vid_width_needed=%d vid_width=%d\n", (int)vid_width_needed, (int)vid_width);
+
+    if (downscale == 0)
+        // if (((vid_height_needed + 10) < var_framebuffer_info.xres) && ((vid_height_needed + 10) < var_framebuffer_info.yres))
+    {
+        // dbg(9, "VP-DEBUG:014\n");
+        // scale image up to output size -----------------------------
+        // scale image up to output size -----------------------------
+        // scale image up to output size -----------------------------
+        // dbg(9, "scale image UP   ****\n");
+        float ww2_upscale = (float)vid_width / (float)frame_width_px1;
+        float hh2_upscale = (float)vid_height / (float)frame_height_px1;
+        // dbg(9, "video frame scale factor2: ww=%f hh=%f\n", ww2_upscale, hh2_upscale);
+        float factor2_upscale = hh2_upscale;
+
+        if (ww2_upscale < hh2_upscale)
+        {
+            factor2_upscale = ww2_upscale;
+        }
+
+        // dbg(9, "factor2_upscale=%f\n", factor2_upscale);
+        int scale_to_width_upscale = (int)((float)frame_width_px1 * factor2_upscale);
+        int scale_to_height_upscale = (int)((float)frame_height_px1 * factor2_upscale);
+
+        if (scale_to_width_upscale < 2)
+        {
+            scale_to_width_upscale = 2;
+        }
+        else if (scale_to_width_upscale > vid_width)
+        {
+            scale_to_width_upscale = vid_width;
+        }
+
+        if (scale_to_height_upscale < 2)
+        {
+            scale_to_height_upscale = 2;
+        }
+        else if (scale_to_height_upscale > vid_height)
+        {
+            scale_to_height_upscale = vid_height;
+        }
+
+        // dbg(9, "video frame scale to: ww=%d hh=%d\n", scale_to_width_upscale, scale_to_height_upscale);
+        // convert to BGRA 1:1 size (from YUV)
+        uint8_t *point = NULL;
+
+        for (i = 0; i < frame_height_px1; i++)
+        {
+            i_src = i;
+
+            for (j = 0; j < frame_width_px1; j++)
+            {
+                point = (uint8_t *) bf_out_data + 4 * ((i * (int)frame_width_px1) + j);
+                j_src = j;
+                yx = y[(i_src * abs(ystride)) + j_src];
+                ux = u[((i_src / 2) * abs(ustride)) + (j_src / 2)];
+                vx = v[((i_src / 2) * abs(vstride)) + (j_src / 2)];
+                point[0] = YUV2B(yx, ux, vx); // B
+                point[1] = YUV2G(yx, ux, vx); // G
+                point[2] = YUV2R(yx, ux, vx); // R
+                // point[3] = 0; // A
+            }
+        }
+
+        uint8_t *bf_out_data_upscaled = (uint8_t *)calloc(1, framebuffer_screensize);
+        memset(bf_out_data_upscaled, 0, framebuffer_screensize);
+        // resize ---------------
+        stbir_resize_uint8(bf_out_data, frame_width_px1, frame_height_px1, 0,
+                           bf_out_data_upscaled, scale_to_width_upscale, scale_to_height_upscale, (int)var_framebuffer_fix_info.line_length, 4);
+        // dbg(9, "upscale res=%d\n", res_upscale);
+        // resize ---------------
+
+        if (bf_out_data != NULL)
+        {
+            free(bf_out_data);
+            bf_out_data = NULL;
+        }
+
+        if (bf_out_data_upscaled != NULL)
+        {
+            fb_copy_frame_to_fb(bf_out_data_upscaled);
+            free(bf_out_data_upscaled);
+            bf_out_data_upscaled = NULL;
+        }
+
+        // scale image up to output size -----------------------------
+        // scale image up to output size -----------------------------
+        // scale image up to output size -----------------------------
+        // dbg(9, "VP-DEBUG:015\n");
+    }
+    else
+    {
+        // dbg(9, "VP-DEBUG:016\n");
+        // scale image down to output size (or leave as is) ----------
+        // scale image down to output size (or leave as is) ----------
+        // scale image down to output size (or leave as is) ----------
+        // dbg(9, "scale image DOWN ++++\n");
+        memset(bf_out_data, 0, framebuffer_screensize);
+        // dbg(9, "vid_width_needed=%d vid_height_needed=%d\n", (int)vid_width_needed, (int)vid_height_needed);
+        float ww2_downscale = (float)vid_width / (float)frame_width_px1;
+        float hh2_downscale = (float)vid_height / (float)frame_height_px1;
+        // dbg(9, "video frame scale factor2: ww=%f hh=%f\n", ww2_downscale, hh2_downscale);
+        float factor2_downscale = hh2_downscale;
+
+        if (ww2_downscale < hh2_downscale)
+        {
+            factor2_downscale = ww2_downscale;
+        }
+
+        int scale_to_width_downscale = (int)((float)frame_width_px1 * factor2_downscale);
+        int scale_to_height_downscale = (int)((float)frame_height_px1 * factor2_downscale);
+
+        if (scale_to_width_downscale < 2)
+        {
+            scale_to_width_downscale = 2;
+        }
+        else if (scale_to_width_downscale > vid_width)
+        {
+            scale_to_width_downscale = vid_width;
+        }
+
+        if (scale_to_height_downscale < 2)
+        {
+            scale_to_height_downscale = 2;
+        }
+        else if (scale_to_height_downscale > vid_height)
+        {
+            scale_to_height_downscale = vid_height;
+        }
+
+        int offset_right_px = (int)(((float)vid_width - (float)scale_to_width_downscale) / 2.0f);
+        int offset_down_px = (int)(((float)vid_height - (float)scale_to_height_downscale) / 2.0f);
+
+        // downscale and convert to BGRA in 1 step
+        for (i = 0; i < scale_to_height_downscale; ++i)
+        {
+            i_src = (int)((float)i / factor2_downscale);
+
+            for (j = 0; j < scale_to_width_downscale; ++j)
+            {
+                uint8_t *point = (uint8_t *) bf_out_data + 4 * //  '4 *'  ->  to get it in bytes (because 4 bytes per pixel)
+                                 (
+                                     ((i + offset_down_px) * (int)var_framebuffer_fix_info.line_length / 4) + j + offset_right_px // in pixels
+                                 );
+                j_src = (int)((float)j / factor2_downscale);
+                yx = y[(i_src * abs(ystride)) + j_src];
+                ux = u[((i_src / 2) * abs(ustride)) + (j_src / 2)];
+                vx = v[((i_src / 2) * abs(vstride)) + (j_src / 2)];
+                point[0] = YUV2B(yx, ux, vx); // B
+                point[1] = YUV2G(yx, ux, vx); // G
+                point[2] = YUV2R(yx, ux, vx); // R
+                // point[3] = 0; // A
+            }
+        }
+
+
+        if (bf_out_data != NULL)
+        {
+            fb_copy_frame_to_fb(bf_out_data);
+            free(bf_out_data);
+            bf_out_data = NULL;
+        }
+
+        // scale image down to output size (or leave as is) ----------
+        // scale image down to output size (or leave as is) ----------
+        // scale image down to output size (or leave as is) ----------
+    }
+
+
+
+/* ------ Framebuffer output ------ */
+/* ------ Framebuffer output ------ */
+/* ------ Framebuffer output ------ */
+
+
+#endif
+// -- Zoxcore --
 
     pthread_mutex_unlock(device->mutex);
     return vde_None;
@@ -727,6 +1160,8 @@ void *video_thread_poll(void *arg)  // TODO: maybe use thread for every input so
                         device->cb(video_width, video_height, y, u, v, device->cb_data);
                     }
 
+// -- Zoxcore --
+#ifdef X11VIDEO
                     /* Convert YUV420 data to BGR */
                     uint8_t *img_data = malloc(video_width * video_height * 4);
                     yuv420tobgr(video_width, video_height, y, u, v,
@@ -756,6 +1191,9 @@ void *video_thread_poll(void *arg)  // TODO: maybe use thread for every input so
                     XFreePixmap(device->x_display, pixmap);
                     XFlush(device->x_display);
                     free(img_data);
+
+#endif
+// -- Zoxcore --
 
 #if !defined(__OSX__)
 
@@ -816,10 +1254,16 @@ VideoDeviceError close_video_device(VideoDeviceType type, uint32_t device_idx)
             close(device->fd);
 
 #endif
+// -- Zoxcore --
+#ifdef X11VIDEO
             vpx_img_free(&device->input);
             XDestroyWindow(device->x_display, device->x_window);
             XFlush(device->x_display);
             XCloseDisplay(device->x_display);
+
+#endif
+// -- Zoxcore --
+
             pthread_mutex_destroy(device->mutex);
 
 #if !defined(__OSX__)
@@ -828,10 +1272,29 @@ VideoDeviceError close_video_device(VideoDeviceType type, uint32_t device_idx)
 
             free(device);
         } else {
+
+// -- Zoxcore --
+#ifdef X11VIDEO
             vpx_img_free(&device->input);
             XDestroyWindow(device->x_display, device->x_window);
             XFlush(device->x_display);
             XCloseDisplay(device->x_display);
+#else
+
+            if (framebuffer_mappedmem != NULL)
+            {
+                int res = munmap(framebuffer_mappedmem, (size_t)framebuffer_screensize);
+                framebuffer_mappedmem = NULL;
+            }
+
+            if (global_framebuffer_device_fd > 0)
+            {
+                close(global_framebuffer_device_fd);
+                global_framebuffer_device_fd = 0;
+            }
+
+#endif
+// -- Zoxcore --
             pthread_mutex_destroy(device->mutex);
             free(device);
         }

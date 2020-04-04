@@ -9,7 +9,7 @@ export PKG_CONFIG_PATH=../inst_ct/lib/pkgconfig
 
 CFLAGS ?= -g
 CFLAGS += -g -O3 -std=gnu99 -pthread -Wall -fstack-protector-all -L../inst_ct/lib/ -I../inst_ct/include/
-CFLAGS += '-DTOXICVER="$(VERSION)"' -DHAVE_WIDECHAR -D_XOPEN_SOURCE_EXTENDED -D_FILE_OFFSET_BITS=64
+CFLAGS += '-DTOXICVER="$(VERSION)"' -DHAVE_WIDECHAR -D_XOPEN_SOURCE_EXTENDED -D_FILE_OFFSET_BITS=64 -DVIDEO
 CFLAGS += '-DPACKAGE_DATADIR="$(abspath $(DATADIR))"'
 CFLAGS += ${USER_CFLAGS}
 LDFLAGS ?=
