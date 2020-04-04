@@ -5,7 +5,7 @@ CFG_DIR = $(BASE_DIR)/cfg
 
 LIBS = x264 libtoxcore libtoxav libsodium libavutil libavcodec libavformat ncursesw libconfig libcurl
 
-export PKG_CONFIG_PATH=../inst_ct/lib/pkgconfig
+export PKG_CONFIG_PATH=../inst_ct/lib/pkgconfig:$PKG_CONFIG_PATH
 
 CFLAGS ?= -g
 CFLAGS += -g -O3 -std=gnu99 -pthread -Wall -fstack-protector-all -L../inst_ct/lib/ -I../inst_ct/include/

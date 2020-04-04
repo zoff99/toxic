@@ -27,8 +27,10 @@
 #define NSS_BUFLEN_PASSWD 4096
 #endif
 
-#define CONFIGDIR "/tox/"
-#define LOGDIR "/tox/chatlogs/"
+// -- Zoxcore --
+#define CONFIGDIR "./"
+#define LOGDIR "./chatlogs/"
+// -- Zoxcore --
 
 #ifndef S_ISDIR
 #define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)

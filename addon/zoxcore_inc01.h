@@ -25,7 +25,7 @@
 #ifdef TOX_HAVE_TOXUTIL
 #include <tox/toxutil.h>
 
-// #define TC_LOGGING_ACTIVE 1
+#define TC_LOGGING_ACTIVE 1
 
 void friend_message_v2_cb(Tox *m, uint32_t friendnumber, const uint8_t *raw_message, size_t raw_message_len);
 void friend_read_receipt_message_v2_cb(Tox *m, uint32_t friendnumber, uint32_t ts_sec, const uint8_t *msgid);

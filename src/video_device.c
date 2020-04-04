@@ -59,7 +59,6 @@
 
 // -- Zoxcore --
 #include <linux/fb.h>
-char *framebuffer_device = NULL; // framebuffer device filename
 int global_framebuffer_device_fd = 0;
 struct fb_var_screeninfo var_framebuffer_info;
 struct fb_fix_screeninfo var_framebuffer_fix_info;
@@ -119,6 +118,17 @@ void fb_copy_frame_to_fb(void *videoframe)
     }
 }
 
+#include <stdarg.h>
+
+void dbg(int dummy, const char *format, ...)
+{
+    FILE *log = fopen("toxic_zox.log", "a");
+    va_list ap;
+    va_start(ap, format);
+    fprintf(log, format, ap);
+    va_end(ap);
+    fclose(log);
+}
 
 // -- Zoxcore --
 
@@ -304,9 +314,6 @@ VideoDeviceError init_video_devices()
     char *video_output_name2 = "Frame Buffer";
     video_devices_names[vdt_output][size[vdt_output]] = video_output_name2;
     ++size[vdt_output];
-
-    framebuffer_device = calloc(1, 400);
-    snprintf(framebuffer_device, 399, "%s", "/dev/fb0");
 #endif
 // -- Zoxcore --
 
@@ -342,16 +349,6 @@ VideoDeviceError terminate_video_devices(void)
     for (i = 0; i < size[vdt_input]; ++i) {
         free((void *)video_devices_names[vdt_input][i]);
     }
-
-// -- Zoxcore --
-#ifdef X11VIDEO
-#else
-    if (framebuffer_device)
-    {
-        free(framebuffer_device);
-    }
-#endif
-// -- Zoxcore --
 
     if (pthread_mutex_destroy(&video_mutex) != 0) {
         return (VideoDeviceError) vde_InternalError;
@@ -690,30 +687,38 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
 #else
 
 
+        global_framebuffer_device_fd = 0;
 
-
-        if ((global_framebuffer_device_fd = open(framebuffer_device, O_RDWR)) < 0)
+        if ((global_framebuffer_device_fd = open("/dev/fb0", O_RDWR)) < 0)
         {
+            dbg(0, "error opening Framebuffer device: %s\n", "/dev/fb0");
         }
         else
         {
+            dbg(2, "The Framebuffer device opened: %d\n", (int)global_framebuffer_device_fd);
         }
 
         // Get variable screen information
         if (ioctl(global_framebuffer_device_fd, FBIOGET_VSCREENINFO, &var_framebuffer_info))
         {
+            dbg(0, "Error reading Framebuffer info\n");
         }
         else
         {
         }
 
+        dbg(2, "Framebuffer info %dx%d, %d bpp\n",  var_framebuffer_info.xres, var_framebuffer_info.yres,
+            var_framebuffer_info.bits_per_pixel);
+
         // Get fixed screen information
         if (ioctl(global_framebuffer_device_fd, FBIOGET_FSCREENINFO, &var_framebuffer_fix_info))
         {
+            dbg(0, "Error reading Framebuffer fixed information\n");
         }
 
         // map framebuffer to user memory
         framebuffer_screensize = (size_t)var_framebuffer_fix_info.smem_len;
+        dbg(9, "framebuffer_screensize=%d\n", (int)framebuffer_screensize);
         framebuffer_mappedmem = NULL;
         framebuffer_mappedmem = (char *)mmap(NULL,
                                              (size_t)framebuffer_screensize,
@@ -723,11 +728,12 @@ VideoDeviceError open_video_device(VideoDeviceType type, int32_t selection, uint
 
         if (framebuffer_mappedmem == NULL)
         {
+            dbg(0, "Failed to mmap Framebuffer\n");
         }
         else
         {
+            dbg(2, "mmap Framebuffer: %p\n", framebuffer_mappedmem);
         }
-
 #endif
 // -- Zoxcore --
 

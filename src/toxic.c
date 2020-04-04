@@ -95,7 +95,9 @@ char *DATA_FILE = NULL;
 char *BLOCK_FILE = NULL;
 ToxWindow *prompt = NULL;
 
-#define DATANAME  "toxic_profile.tox"
+// -- Zoxcore --
+#define DATANAME  "savedata.tox"
+// -- Zoxcore --
 #define BLOCKNAME "toxic_blocklist"
 
 #define MIN_PASSWORD_LEN 6
@@ -1188,7 +1190,10 @@ static void init_default_data_files(void)
         return;
     }
 
-    char *user_config_dir = get_user_config_dir();
+    // -- Zoxcore --
+    /* hardcoded config and logdir for toxic-on-a-stick */
+    char *user_config_dir = "./db/"; // get_user_config_dir();
+    // -- Zoxcore --
 
     if (user_config_dir == NULL) {
         exit_toxic_err("failed in init_default_data_files()", FATALERR_FILEOP);

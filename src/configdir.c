@@ -113,7 +113,7 @@ char *get_user_config_dir(void)
 int create_user_config_dirs(char *path)
 {
     struct stat buf;
-    int mkdir_err = mkdir(path, 0700);
+    int mkdir_err = mkdir(path, 0770);
 
     if (mkdir_err && (errno != EEXIST || stat(path, &buf) || !S_ISDIR(buf.st_mode))) {
         return -1;
@@ -132,7 +132,7 @@ int create_user_config_dirs(char *path)
     strcpy(logpath, path);
     strcat(logpath, LOGDIR);
 
-    mkdir_err = mkdir(fullpath, 0700);
+    mkdir_err = mkdir(fullpath, 0770);
 
     if (mkdir_err && (errno != EEXIST || stat(fullpath, &buf) || !S_ISDIR(buf.st_mode))) {
         free(fullpath);
@@ -140,7 +140,7 @@ int create_user_config_dirs(char *path)
         return -1;
     }
 
-    mkdir_err = mkdir(logpath, 0700);
+    mkdir_err = mkdir(logpath, 0770);
 
     if (mkdir_err && (errno != EEXIST || stat(logpath, &buf) || !S_ISDIR(buf.st_mode))) {
         free(fullpath);
