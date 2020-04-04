@@ -1192,7 +1192,7 @@ static void init_default_data_files(void)
 
     // -- Zoxcore --
     /* hardcoded config and logdir for toxic-on-a-stick */
-    char *user_config_dir = "./db/"; // get_user_config_dir();
+    const char *user_config_dir = "./db/"; // get_user_config_dir();
     // -- Zoxcore --
 
     if (user_config_dir == NULL) {
@@ -1230,7 +1230,9 @@ static void init_default_data_files(void)
         queue_init_message("Warning: Profile backwards compatibility failed.");
     }
 
-    free(user_config_dir);
+    // -- Zoxcore --
+    // free(user_config_dir);
+    // -- Zoxcore --
 }
 
 // this doesn't do anything (yet)
