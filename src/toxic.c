@@ -1270,12 +1270,15 @@ int main(int argc, char **argv)
 
     bool datafile_exists = file_exists(DATA_FILE);
 
+// -- Zoxcore --
+#if 0
     if (!datafile_exists && !arg_opts.unencrypt_data) {
         first_time_encrypt("Creating new data file. Would you like to encrypt it? Y/n (q to quit)");
     } else if (arg_opts.encrypt_data) {
         first_time_encrypt("Encrypt existing data file? Y/n (q to quit)");
     }
-
+#endif
+// -- Zoxcore --
 
     /* init user_settings struct and load settings from conf file */
     user_settings = calloc(1, sizeof(struct user_settings));
@@ -1291,6 +1294,9 @@ int main(int argc, char **argv)
     }
 
     int curl_init = curl_global_init(CURL_GLOBAL_ALL);
+// -- Zoxcore --
+    curl_init = -1;
+// -- Zoxcore --
     int nameserver_ret = name_lookup_init(curl_init);
 
     if (nameserver_ret == -1) {
