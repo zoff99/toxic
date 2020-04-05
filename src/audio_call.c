@@ -608,6 +608,11 @@ void cmd_hangup(WINDOW *window, ToxWindow *self, Tox *m, int argc, char (*argv)[
 #endif /* VIDEO */
 
     stop_current_call(self);
+
+// -- Zoxcore --
+    system("clear"); // redraw screen after video call
+// -- Zoxcore --
+
     return;
 on_error:
     print_err(self, error_str);
