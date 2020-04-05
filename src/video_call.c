@@ -39,7 +39,7 @@
 
 #ifdef VIDEO
 
-#define default_video_bit_rate 1000
+#define default_video_bit_rate 300
 
 void on_video_receive_frame(ToxAV *av, uint32_t friend_number,
                             uint16_t width, uint16_t height,
@@ -59,7 +59,7 @@ ToxAV *init_video(ToxWindow *self, Tox *tox)
     CallControl.video_errors = ve_None;
 
     CallControl.video_enabled = true;
-    CallControl.video_bit_rate = 0;
+    CallControl.video_bit_rate = 300;
     CallControl.video_frame_duration = 10;
 
     if (!CallControl.av) {

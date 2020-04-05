@@ -132,7 +132,7 @@ ToxAV *init_audio(ToxWindow *self, Tox *tox)
 
 #ifndef VIDEO
     CallControl.video_enabled = false;
-    CallControl.video_bit_rate = 0;
+    CallControl.video_bit_rate = 300;
     CallControl.video_frame_duration = 0;
 #endif /* VIDEO */
 
