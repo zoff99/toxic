@@ -852,16 +852,18 @@ static Tox *load_toxic(char *data_path)
 
 static void do_toxic(Tox *m)
 {
-    pthread_mutex_lock(&Winthread.lock);
+// -- Zoxcore --
+    // pthread_mutex_lock(&Winthread.lock);
 
     if (arg_opts.no_connect) {
-        pthread_mutex_unlock(&Winthread.lock);
+        // pthread_mutex_unlock(&Winthread.lock);
         return;
     }
 
     tox_iterate(m, NULL);
     do_tox_connection(m);
-    pthread_mutex_unlock(&Winthread.lock);
+    // pthread_mutex_unlock(&Winthread.lock);
+// -- Zoxcore --
 }
 
 #define INACTIVE_WIN_REFRESH_RATE 10
@@ -922,11 +924,13 @@ void *thread_av(void *data)
     ToxAV *av = (ToxAV *) data;
 
     while (true) {
-        pthread_mutex_lock(&Winthread.lock);
+// -- Zoxcore --
+        // pthread_mutex_lock(&Winthread.lock);
         toxav_iterate(av);
-        pthread_mutex_unlock(&Winthread.lock);
+        // pthread_mutex_unlock(&Winthread.lock);
 
-        usleep(toxav_iteration_interval(av) * 1000);
+        usleep(5 * 1000);
+// -- Zoxcore --
     }
 }
 #endif /* AUDIO */
@@ -1402,21 +1406,23 @@ int main(int argc, char **argv)
     while (true) {
         do_toxic(m);
 
+// -- Zoxcore --
         time_t cur_time = get_unix_time();
 
         if (user_settings->autosave_freq > 0 && timed_out(last_save, user_settings->autosave_freq)) {
-            pthread_mutex_lock(&Winthread.lock);
+            // pthread_mutex_lock(&Winthread.lock);
 
             if (store_data(m, DATA_FILE) != 0) {
                 line_info_add(prompt, NULL, NULL, NULL, SYS_MSG, 0, RED, "WARNING: Failed to save to data file");
             }
 
-            pthread_mutex_unlock(&Winthread.lock);
+            // pthread_mutex_unlock(&Winthread.lock);
 
             last_save = cur_time;
         }
 
-        usleep(tox_iteration_interval(m) * 1000);
+        usleep(4 * 1000);
+// -- Zoxcore --
     }
 
     return 0;
