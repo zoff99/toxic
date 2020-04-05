@@ -124,6 +124,10 @@ ToxAV *init_audio(ToxWindow *self, Tox *tox)
 
     CallControl.av = toxav_new(tox, &error);
 
+// -- Zoxcore --
+    toxav_audio_iterate_seperation(CallControl.av, true);
+// -- Zoxcore --
+
     CallControl.audio_enabled = true;
     CallControl.audio_bit_rate = 64;
     CallControl.audio_sample_rate = 48000;

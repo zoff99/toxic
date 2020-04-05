@@ -106,6 +106,7 @@ ToxWindow *prompt = NULL;
 struct Winthread Winthread;
 struct cqueue_thread cqueue_thread;
 struct av_thread av_thread;
+struct av_thread_audio av_thread_audio;
 struct arg_opts arg_opts;
 struct user_settings *user_settings = NULL;
 
@@ -919,20 +920,34 @@ void *thread_cqueue(void *data)
 }
 
 #ifdef AUDIO
+
+// -- Zoxcore --
 void *thread_av(void *data)
 {
     ToxAV *av = (ToxAV *) data;
 
     while (true) {
-// -- Zoxcore --
         // pthread_mutex_lock(&Winthread.lock);
         toxav_iterate(av);
         // pthread_mutex_unlock(&Winthread.lock);
 
         usleep(5 * 1000);
-// -- Zoxcore --
     }
 }
+
+
+void *thread_av_audio(void *data)
+{
+    ToxAV *av = (ToxAV *) data;
+
+    while (true) {
+        toxav_audio_iterate(av);
+
+        usleep(5 * 1000);
+    }
+}
+// -- Zoxcore --
+
 #endif /* AUDIO */
 
 static void print_usage(void)
@@ -1358,6 +1373,12 @@ int main(int argc, char **argv)
     if (pthread_create(&av_thread.tid, NULL, thread_av, (void *) av) != 0) {
         exit_toxic_err("failed in main", FATALERR_THREAD_CREATE);
     }
+
+// -- Zoxcore --
+    if (pthread_create(&av_thread_audio.tid, NULL, thread_av_audio, (void *) av) != 0) {
+        exit_toxic_err("failed in main", FATALERR_THREAD_CREATE);
+    }
+// -- Zoxcore --
 
     set_primary_device(input, user_settings->audio_in_dev);
     set_primary_device(output, user_settings->audio_out_dev);

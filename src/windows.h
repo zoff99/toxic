@@ -80,6 +80,10 @@ struct av_thread {
     pthread_t tid;
 };
 
+struct av_thread_audio {
+    pthread_t tid;
+};
+
 struct arg_opts {
     bool use_ipv4;
     bool force_tcp;
