@@ -74,6 +74,9 @@ fi
 # build toxic -------------
 
 cd $_HOME_
+if [ "$1""x" == "cleanx" ]; then
+    make clean
+fi
 make -j $(nproc) || exit 1
 
 

@@ -86,6 +86,10 @@ ToxAV *av;
 #define PACKAGE_DATADIR "."
 #endif
 
+// -- Zoxcore --
+#include "../addon/zoxcore_inc01.h"
+// -- Zoxcore --
+
 /* Export for use in Callbacks */
 char *DATA_FILE = NULL;
 char *BLOCK_FILE = NULL;
@@ -870,7 +874,11 @@ static Tox *load_toxic(char *data_path)
         queue_init_message("tox_new returned non-fatal error %d", new_err);
     }
 
-    init_tox_callbacks(m);
+// -- Zoxcore --
+    #include "../addon/zoxcore_init_tox_callbacks.h"
+    // init_tox_callbacks(m);
+// -- Zoxcore --
+
     load_friendlist(m);
     load_blocklist(BLOCK_FILE);
 
