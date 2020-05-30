@@ -3,15 +3,17 @@ CFG_DIR = $(BASE_DIR)/cfg
 
 -include $(CFG_DIR)/global_vars.mk
 
-LIBS = toxcore ncursesw libconfig libcurl
+LIBS = libtoxcore libtoxav libsodium libavutil ncursesw libconfig libcurl
+
+export PKG_CONFIG_PATH=../inst_ct/lib/pkgconfig
 
 CFLAGS ?= -g
-CFLAGS += -std=gnu99 -pthread -Wall -Wpedantic -Wunused -fstack-protector-all
+CFLAGS += -g -O3 -std=gnu99 -pthread -Wall -fstack-protector-all -L../inst_ct/lib/ -I../inst_ct/include/
 CFLAGS += '-DTOXICVER="$(VERSION)"' -DHAVE_WIDECHAR -D_XOPEN_SOURCE_EXTENDED -D_FILE_OFFSET_BITS=64
 CFLAGS += '-DPACKAGE_DATADIR="$(abspath $(DATADIR))"'
 CFLAGS += ${USER_CFLAGS}
 LDFLAGS ?=
-LDFLAGS += ${USER_LDFLAGS}
+LDFLAGS += ${USER_LDFLAGS} -l:libtoxencryptsave.a
 
 OBJ = autocomplete.o avatars.o bootstrap.o chat.o chat_commands.o configdir.o curl_util.o execute.o
 OBJ += file_transfers.o friendlist.o global_commands.o group_commands.o groupchat.o help.o input.o
