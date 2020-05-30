@@ -17,3 +17,5 @@ build/toxic
 build/*.o
 build/*.d
 apidoc/python/build
+build/
+inst/
